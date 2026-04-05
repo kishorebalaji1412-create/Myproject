@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dataset Browser - Semantic Network Visualization</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="dataset-page">
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <p>Processing dataset...</p>
+    </div>
+
+    <!-- Header -->
+    <nav class="navbar">
+        <div class="navbar-content">
+            <div class="navbar-left">
+                <h1 class="navbar-title">Dataset Browser</h1>
+                <a href="/" class="navbar-link">← Back to Graph</a>
+            </div>
+            <div class="navbar-right">
+                <button id="theme-toggle-dataset" class="navbar-btn">🌙 Dark</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="dataset-main">
+        <!-- Search Section -->
+        <section class="dataset-search-section">
+            <h2>Search Kaggle Datasets</h2>
+            <div class="search-container">
+                <input 
+                    type="text" 
+                    id="kaggle-search-input" 
+                    placeholder="Search datasets (e.g., 'iris', 'covid', 'housing')..."
+                    class="dataset-search-input"
+                    autofocus
+                >
+                <button id="kaggle-search-btn" class="search-btn">🔍 Search</button>
+            </div>
+        </section>
+
+        <!-- Search Results -->
+        <section class="dataset-results-section">
+            <h3>Search Results</h3>
+            <div id="kaggle-results" class="dataset-grid">
+                <p class="empty-state">Enter a search term and click search to find datasets</p>
+            </div>
+        </section>
+
+        <!-- Local Datasets -->
+        <section class="local-datasets-section">
+            <h3>Local Datasets</h3>
+            <div id="local-datasets" class="dataset-grid">
+                <p class="empty-state" id="no-local-datasets">No datasets downloaded yet</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- JavaScript -->
+    <script>
+        // Dataset Browser UI
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadLocalDatasets();
+            
+            document.getElementById('kaggle-search-btn').addEventListener('click', searchKaggle);
+            document.getElementById('kaggle-search-input').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') searchKaggle();
+            });
+            
+            // Theme toggle
+            document.getElementById('theme-toggle-dataset').addEventListener('click', toggleTheme);
+        });
+
+        async function searchKaggle() {
+            const query = document.getElementById('kaggle-search-input').value.trim();
+            
+            if (!query) {
+                showToast('Please enter a search term', 'warning');
+                return;
+            }
+
+            const resultsContainer = document.getElementById('kaggle-results');
+            resultsContainer.innerHTML = '<div class="loading-spinner"></div><p>Searching...</p>';
+
+            try {
+                const response = await fetch(`/api/kaggle/search?q=${encodeURIComponent(query)}&limit=12`);
+                const data = await response.json();
+
+                if (!data.success) {
+                    showToast('Search failed: ' + data.error, 'error');
+                    resultsContainer.innerHTML = '<p class="empty-state">Search failed. Please try again.</p>';
+                    return;
+                }
+
+                if (data.results.length === 0) {
+                    resultsContainer.innerHTML = '<p class="empty-state">No datasets found. Try a different search.</p>';
+                    return;
+                }
+
+                resultsContainer.innerHTML = data.results.map(dataset => `
+                    <div class="dataset-card">
+                        <div class="dataset-card-header">
+                            <h4>${escapeHtml(dataset.title)}</h4>
+                            <span class="dataset-author">${escapeHtml(dataset.author)}</span>
+                        </div>
+                        <p class="dataset-description">${escapeHtml(dataset.description)}</p>
+                        <div class="dataset-stats">
+                            <span class="stat">📊 ${formatBytes(dataset.size)}</span>
+                            <span class="stat">⬇️ ${formatNumber(dataset.downloads)} downloads</span>
+                        </div>
+                        <button class="load-dataset-btn" onclick="loadDataset('${dataset.slug}')">
+                            Load Dataset
+                        </button>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Search error:', error);
+                showToast('Error: ' + error.message, 'error');
+                resultsContainer.innerHTML = '<p class="empty-state">An error occurred. Please try again.</p>';
+            }
+        }
+
+        async function loadDataset(slug) {
+            const overlay = document.getElementById('loading-overlay');
+            overlay.style.display = 'flex';
+
+            try {
+                const response = await fetch('/api/kaggle/download', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ dataset_slug: slug })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast(`Dataset loaded: ${result.nodes} nodes, ${result.edges} edges`, 'success');
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 1500);
+                } else {
+                    showToast('Failed to load dataset: ' + result.error, 'error');
+                }
+            } catch (error) {
+                console.error('Load error:', error);
+                showToast('Error: ' + error.message, 'error');
+            } finally {
+                overlay.style.display = 'none';
+            }
+        }
+
+        async function loadLocalDataset(filename) {
+            const overlay = document.getElementById('loading-overlay');
+            overlay.style.display = 'flex';
+
+            try {
+                const response = await fetch('/api/kaggle/load', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename: filename })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast(`Dataset loaded: ${result.nodes} nodes, ${result.edges} edges`, 'success');
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 1500);
+                } else {
+                    showToast('Failed to load dataset: ' + result.error, 'error');
+                }
+            } catch (error) {
+                console.error('Load error:', error);
+                showToast('Error: ' + error.message, 'error');
+            } finally {
+                overlay.style.display = 'none';
+            }
+        }
+
+        async function loadLocalDatasets() {
+            try {
+                const response = await fetch('/api/kaggle/datasets');
+                const data = await response.json();
+
+                const container = document.getElementById('local-datasets');
+                const noneMsg = document.getElementById('no-local-datasets');
+
+                if (data.datasets.length === 0) {
+                    noneMsg.style.display = 'block';
+                    container.innerHTML = '';
+                    return;
+                }
+
+                noneMsg.style.display = 'none';
+                container.innerHTML = data.datasets.map(dataset => `
+                    <div class="dataset-card">
+                        <div class="dataset-card-header">
+                            <h4>📁 ${escapeHtml(dataset.name)}</h4>
+                        </div>
+                        <p class="dataset-description">Local dataset</p>
+                        <div class="dataset-stats">
+                            <span class="stat">💾 ${dataset.size_mb} MB</span>
+                        </div>
+                        <button class="load-dataset-btn" onclick="loadLocalDataset('${escapeHtml(dataset.filename)}')">
+                            Use This Dataset
+                        </button>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading datasets:', error);
+            }
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.animation = 'slideOut 0.3s ease-out';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle('light-mode');
+            const isDark = !document.body.classList.contains('light-mode');
+            document.getElementById('theme-toggle-dataset').textContent = isDark ? '🌙 Dark' : '☀️ Light';
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        function formatNumber(num) {
+            if (num >= 1000000) return Math.round(num / 1000000) + 'M';
+            if (num >= 1000) return Math.round(num / 1000) + 'K';
+            return num;
+        }
+
+        // Load theme preference
+        if (localStorage.getItem('theme') === 'light') {
+            document.body.classList.add('light-mode');
+            document.getElementById('theme-toggle-dataset').textContent = '☀️ Light';
+        }
+    </script>
+</body>
+</html>

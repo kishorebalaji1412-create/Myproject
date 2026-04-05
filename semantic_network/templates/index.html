@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Semantic Network Visualization</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <h2>Loading Semantic Network</h2>
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 0%"></div>
+                </div>
+                <p class="progress-text">Initializing...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header/Navbar -->
+    <nav class="navbar">
+        <div class="navbar-content">
+            <div class="navbar-left">
+                <h1 class="navbar-title">Semantic Network Visualizer</h1>
+                <span class="dataset-badge" id="dataset-badge">Loading...</span>
+            </div>
+            <div class="navbar-center">
+                <div class="search-box">
+                    <input type="text" id="search-input" placeholder="Search nodes..." class="search-input">
+                    <button id="search-clear" class="search-clear-btn" title="Clear search">✕</button>
+                </div>
+            </div>
+            <div class="navbar-right">
+                <button id="dataset-btn" class="navbar-btn" title="Switch Dataset">
+                    📊 Switch Dataset
+                </button>
+                <button id="theme-toggle" class="navbar-btn" title="Toggle Dark/Light Mode">
+                    🌙 Dark
+                </button>
+                <button id="export-btn" class="navbar-btn" title="Export Graph">
+                    ⬇️ Export
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h3>Node Details</h3>
+            </div>
+            <div id="node-panel" class="node-panel">
+                <p class="no-selection">Click a node to view details</p>
+            </div>
+            <div class="sidebar-divider"></div>
+            <div class="sidebar-header">
+                <h3>Statistics</h3>
+            </div>
+            <div id="stats-panel" class="stats-panel">
+                <div class="stat-item">
+                    <span class="stat-label">Total Nodes:</span>
+                    <span class="stat-value" id="stat-nodes">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Total Edges:</span>
+                    <span class="stat-value" id="stat-edges">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Categories:</span>
+                    <span class="stat-value" id="stat-categories">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Dataset:</span>
+                    <span class="stat-value" id="stat-dataset">Default</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Graph Container -->
+        <main class="graph-container">
+            <div id="graph"></div>
+        </main>
+
+        <!-- Control Panel (bottom-right) -->
+        <div class="control-panel">
+            <div class="control-group">
+                <button id="zoom-in" class="control-btn" title="Zoom In">+</button>
+                <button id="zoom-out" class="control-btn" title="Zoom Out">−</button>
+                <button id="reset-view" class="control-btn" title="Reset View">⟲</button>
+            </div>
+            <div class="control-group">
+                <button id="reset-filter" class="control-btn" title="Reset Filters">Filter</button>
+            </div>
+            <div id="category-filter-container"></div>
+            <div class="control-group">
+                <span class="node-count-badge" id="node-count-badge">Showing 0 of 0 nodes</span>
+            </div>
+        </div>
+    </main>
+
+    <!-- Hamburger Menu (Mobile) -->
+    <div id="mobile-menu" class="mobile-menu">
+        <button id="menu-toggle" class="menu-toggle">☰</button>
+        <div id="menu-content" class="menu-content">
+            <button id="mobile-dataset-btn" class="mobile-menu-item">📊 Switch Dataset</button>
+            <button id="mobile-theme-toggle" class="mobile-menu-item">🌙 Dark Mode</button>
+            <button id="mobile-export-btn" class="mobile-menu-item">⬇️ Export</button>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Tooltip -->
+    <div id="tooltip" class="tooltip"></div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <span class="footer-text">Semantic Network Visualization | 
+            <span id="footer-dataset">Default Dataset</span> | 
+            <a href="/about" class="footer-link">About</a>
+        </span>
+    </footer>
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/graph.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/ui.js') }}"></script>
+</body>
+</html>
