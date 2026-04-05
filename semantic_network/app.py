@@ -362,7 +362,7 @@ def server_error(error):
 # ============================================================================
 
 if __name__ == "__main__":
-    port = int(os.getenv("FLASK_PORT", 5000))
+    port = int(os.getenv("FLASK_PORT", 10000))
     debug = os.getenv("FLASK_DEBUG", "True").lower() == "true"
     
     app.run(
