@@ -18,8 +18,9 @@ from data import get_default_network
 # Load environment variables
 load_dotenv()
 
-app = Flask(__name__)
-CORS(app)
+app = Flask(__name__, 
+            static_folder='static',
+            template_folder='templates')
 
 # Global state
 current_network = None
